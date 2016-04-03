@@ -4,10 +4,11 @@
 	"pong!".
 */
 
-var Discord = require("../");
+var Discord = require("discord.js");
 
 // Get the email and password
 var AuthDetails = require("./auth.json");
+var meetup = require("./meetup.js");
 
 var bot = new Discord.Client();
 
@@ -28,13 +29,16 @@ bot.on("disconnected", function () {
 //when the bot receives a message
 bot.on("message", function (msg) {
 	//if message begins with "ping"
-	if (msg.content.indexOf("ping") === 0) {
-		//send a message to the channel the ping message was sent in.
-		bot.sendMessage(msg.channel, "pong!");
+	if (msg.content.indexOf("!getevents") === 0) {
 
-		//alert the console
-		console.log("pong-ed " + msg.author.username);
+		meetup.getGroupEvents('23bshop')
+		.then(function(events) {
+			console.log("EVENTS: ", events);
+			//send a message to the channel the ping message was sent in.
+			bot.sendMessage(msg.channel, `Next up coming event: \`\`\`${events[1].name}\`\`\``);
+		});
 	}
+
 });
 
 bot.login(AuthDetails.email, AuthDetails.password);

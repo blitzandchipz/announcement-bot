@@ -1,4 +1,5 @@
 {
 	"email" : "your discord email here",
-	"password" : "your discord password here"
+	"password" : "your discord password here",
+	"api" : "your meetup.com api key here"
 }
