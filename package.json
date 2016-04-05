@@ -5,6 +5,7 @@
   "author": "Jared Kotoff <krylic@gmail.com>",
   "contributors": [],
   "dependencies": {
+    "co": "^4.6.0",
     "discord.js": "^6.1.0",
     "node-fetch": "^1.4.1"
   },

@@ -1,24 +1,26 @@
-var fetch = require("node-fetch");
+'use strict';
 
-var hostname = "https://api.meetup.com";
-var api = require("./auth.json").api;
+const fetch = require("node-fetch");
+const co = require('co');
 
-var meetup = new Object();
-meetup.getGroupEvents = function (urlname, scroll) {
-  if (!urlname) {
-    console.log('You must provide a urlname for getGroupEvents');
-    return -1;
+const hostname = "https://api.meetup.com";
+const api = require("./auth.json").api;
+
+const Meetup = {
+  getGroupEvents: function (urlname, scroll) {
+    if (!urlname) {
+      console.log('You must provide a urlname for getGroupEvents');
+      return -1;
+    }
+    if (!scroll) scroll = 'next_upcoming';
+    const url = `${hostname}/${urlname}/events?scroll=${scroll}&key=${api}&sign=true`;
+
+
+    return co(function *() {
+      const res = yield fetch(url);
+      return res.json();
+    })
   }
-  if (!scroll) scroll = 'next_upcoming';
-  var url = `${hostname}/${urlname}/events?scroll=${scroll}&key=${api}&sign=true`;
-
-  return fetch(url)
-  .then(function(res){
-    return res.json();
-  })
-  .then(function(json){
-    return json;
-  });
 }
 
-module.exports = meetup;
+module.exports = Meetup;
