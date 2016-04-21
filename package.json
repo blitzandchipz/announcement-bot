@@ -6,7 +6,7 @@
   "contributors": [],
   "dependencies": {
     "co": "^4.6.0",
-    "discord.js": "^6.1.0",
+    "discord.js": "^7.0.1",
     "node-fetch": "^1.4.1"
   },
   "repository": {
