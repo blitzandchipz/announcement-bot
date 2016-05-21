@@ -4,7 +4,7 @@ const fetch = require("node-fetch");
 const co = require('co');
 
 const hostname = "https://api.meetup.com";
-const api = require("./auth.json").api;
+const apiKey = require("./auth.json").apiKey;
 
 const Meetup = {
   getGroupEvents: function (urlname, scroll) {
@@ -12,11 +12,11 @@ const Meetup = {
       console.log('You must provide a urlname for getGroupEvents');
       return -1;
     }
-    if (!scroll) scroll = 'next_upcoming';
-    const url = `${hostname}/${urlname}/events?scroll=${scroll}&key=${api}&sign=true`;
+    if (!scroll)
+      scroll = 'next_upcoming';
+    const url = `${hostname}/${urlname}/events?scroll=${scroll}&key=${apiKey}&sign=true`;
 
-
-    return co(function *() {
+    return co(function * () {
       const res = yield fetch(url);
       return res.json();
     })

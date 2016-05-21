@@ -7,12 +7,12 @@
   "dependencies": {
     "co": "^4.6.0",
     "discord.js": "^7.0.1",
-    "node-fetch": "^1.4.1"
+    "node-fetch": "^1.5.2"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/jaredkotoff/meetup-bot.git"
   },
-  "main": "discord_bot.js",
+  "main": "main.js",
   "version": "0.0.1"
 }
