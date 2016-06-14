@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"stathat.com/c/jconfig"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -63,6 +65,8 @@ func init() {
 			APIKey = Config.GetString("APIKey")
 		}
 	}
+
+	fmt.Print(APIKey)
 }
 
 func main() {
@@ -105,6 +109,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Sets the meetup group needed for future commands
 	if strings.HasPrefix(m.Content, "!setgroup") {
+		// TODO handle error of invalid group
 		GroupURL = strings.TrimSpace(strings.TrimPrefix(m.Content, "!setgroup"))
 		s.ChannelMessageSend(m.ChannelID, "Group url now set to: "+GroupURL)
 	}
@@ -115,14 +120,78 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := Hostname + GroupURL + "/events?key=" + APIKey + "?page=3"
-		events, err := http.Get(url)
+		url := Hostname + GroupURL + "/events?key=" + APIKey + "&page=25"
+		r, err := http.Get(url)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, err.Error())
+			errMsg := errMsg(err)
+			s.ChannelMessageSend(m.ChannelID, errMsg)
 			return
 		}
-		contents, _ := ioutil.ReadAll(events.Body)
+		defer r.Body.Close()
+		contents, _ := ioutil.ReadAll(r.Body)
 		fmt.Print(string(contents))
 		s.ChannelMessageSend(m.ChannelID, string(contents))
 	}
+
+	// Returns the next upcoming events
+	if strings.HasPrefix(m.Content, "!nextevent") {
+		url := Hostname + GroupURL + "/events?key=" + APIKey + "&page=1"
+		var events []Event
+		err := getJSON(url, &events)
+		if err != nil {
+			errMsg := errMsg(err)
+			s.ChannelMessageSend(m.ChannelID, errMsg)
+			return
+		}
+		msg := "No future, public events found"
+
+		if len(events) > 0 {
+			event := events[0]
+			if (event.Visibility == "public") && (event.Status == "upcoming") {
+				time, _ := msToTime(event.Time)
+				msg = fmt.Sprintf("Next event: `%v`\nOn: `%v`", event.Name, time)
+			}
+		}
+
+		s.ChannelMessageSend(m.ChannelID, msg)
+	}
+}
+
+// Event is a single event
+type Event struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Status        string `json:"status"`
+	Time          int64  `json:"time"`
+	Updated       int    `json:"updated"`
+	UTCOffset     int    `json:"utc_offset"`
+	WaitlistCount int    `json:"waitlist_count"`
+	YesRSVPCount  int    `json:"yes_rsvp_count"`
+	Link          string `json:"link"`
+	Description   string `json:"description"`
+	Visibility    string `json:"visibility"`
+}
+
+func getJSON(url string, target interface{}) error {
+	r, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(target)
+}
+
+func errMsg(err error) string {
+	msg := err.Error()
+	return msg
+}
+
+func msToTime(ms int64) (string, error) {
+	// msInt, err := strconv.ParseInt(ms, 10, 6Teensy4)
+	// if err != nil {
+	// 	return time.Time{}, err
+	// }
+
+	return time.Unix(0, ms*int64(time.Millisecond)).Format(time.ANSIC), nil
 }
