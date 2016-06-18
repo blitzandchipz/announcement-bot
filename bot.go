@@ -22,8 +22,6 @@ var (
 	BotID string
 	// APIKey for meetup.com
 	APIKey string
-	// GroupURL for a meetup group
-	GroupURL string
 	// Config for the bots settings
 	Config *jconfig.Config
 	// DB for dynamic settings per guild
@@ -88,15 +86,16 @@ func init() {
 			APIKey = Config.GetString("APIKey")
 		}
 	}
-}
 
-func main() {
 	// Open database
 	var err error
 	DB, err = bolt.Open("settings.db", 0600, nil)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func main() {
 	defer DB.Close()
 
 	// Create a new Discord session using the provided login information.
@@ -115,11 +114,13 @@ func main() {
 	// Store the account ID for later use.
 	BotID = u.ID
 
+	// Get all the guilds the bot is in
 	guilds, err := dg.UserGuilds()
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	// Make sure a bucket exists for each guild
 	DB.Update(func(tx *bolt.Tx) error {
 		for _, guild := range guilds {
 			_, err := tx.CreateBucket([]byte(guild.ID))

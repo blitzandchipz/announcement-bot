@@ -21,8 +21,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// TODO Add permissions: only admins should be able to set the group for
 	// the server
 	if strings.HasPrefix(m.Content, "!setgroup") {
-		tempURL := strings.TrimSpace(strings.TrimPrefix(m.Content, "!setgroup"))
-		url := Hostname + "/" + tempURL + "?key=" + APIKey
+		urlName := strings.TrimSpace(strings.TrimPrefix(m.Content, "!setgroup"))
+		url := Hostname + "/" + urlName + "?key=" + APIKey
 		resp, err := http.Get(url)
 		if err != nil {
 			errMsg := errMsg(err)
@@ -37,21 +37,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Invalid group urlname")
 			return
 		}
-		// Store the group in global
-		// TODO rework this so it works per discord guild
-		GroupURL = tempURL
-		channel, err := s.Channel(m.ChannelID)
+
+		channel, err := getChannel(s, m.ChannelID)
 		if err != nil {
 			errMsg := errMsg(err)
 			fmt.Println(errMsg)
 			return
 		}
+
 		DB.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(channel.GuildID))
-			err := b.Put([]byte("urlname"), []byte(GroupURL))
+			err := b.Put([]byte("urlname"), []byte(urlName))
 			return err
 		})
-		s.ChannelMessageSend(m.ChannelID, "Group url now set to: "+GroupURL)
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Group url now set to: %v\n", urlName))
 
 		printGuild(channel.GuildID)
 	}
@@ -59,11 +58,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Gets a list of events for the currently set group
 	// TODO: finish outputt message to server
 	if strings.HasPrefix(m.Content, "!getevents") {
-		if GroupURL == "" {
+		channel, err := getChannel(s, m.ChannelID)
+		if err != nil {
+			errMsg := errMsg(err)
+			fmt.Println(errMsg)
+			return
+		}
+
+		urlName, err := getURLName(channel.GuildID)
+		if err != nil {
+			errMsg := errMsg(err)
+			fmt.Println(errMsg)
+			return
+		}
+
+		if urlName == "" {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := Hostname + GroupURL + "/events?key=" + APIKey + "&page=25"
+		url := Hostname + urlName + "/events?key=" + APIKey + "&page=25"
 		r, err := http.Get(url)
 		if err != nil {
 			errMsg := errMsg(err)
@@ -78,13 +91,27 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Returns the next upcoming, public event
 	if strings.HasPrefix(m.Content, "!nextevent") {
-		if GroupURL == "" {
+		channel, err := getChannel(s, m.ChannelID)
+		if err != nil {
+			errMsg := errMsg(err)
+			fmt.Println(errMsg)
+			return
+		}
+
+		urlName, err := getURLName(channel.GuildID)
+		if err != nil {
+			errMsg := errMsg(err)
+			fmt.Println(errMsg)
+			return
+		}
+
+		if urlName == "" {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := Hostname + GroupURL + "/events?key=" + APIKey + "&page=1"
+		url := Hostname + urlName + "/events?key=" + APIKey + "&page=1"
 		var events []Event
-		err := getJSON(url, &events)
+		err = getJSON(url, &events)
 		if err != nil {
 			errMsg := errMsg(err)
 			s.ChannelMessageSend(m.ChannelID, errMsg)

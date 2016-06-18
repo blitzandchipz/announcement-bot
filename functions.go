@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/bwmarrin/discordgo"
 	"net/http"
 	"time"
 )
@@ -17,6 +18,21 @@ func check(e error) {
 func errMsg(err error) string {
 	msg := err.Error()
 	return msg
+}
+
+func getChannel(s *discordgo.Session, channelID string) (*discordgo.Channel, error) {
+	return s.Channel(channelID)
+}
+
+func getURLName(guildID string) (string, error) {
+	var v []byte
+	var err error
+	err = DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(guildID))
+		v = b.Get([]byte("urlname"))
+		return nil
+	})
+	return string(v), err
 }
 
 func printGuild(guildID string) {
