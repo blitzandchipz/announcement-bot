@@ -1,0 +1,42 @@
+{
+	"ImportPath": "github.com/jaredkotoff/meetup-bot",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.2.1-7-g3f7947a",
+			"Rev": "3f7947a25d970e1e5f512276c14d5dcf731ccd5e"
+		},
+		{
+			"ImportPath": "github.com/bwmarrin/discordgo",
+			"Comment": "v0.12.1-4-g83622ce",
+			"Rev": "83622cecfa50f0c4066c9e2af832a3bc9a83f333"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.0.0",
+			"Rev": "1f512fc3f05332ba7117626cdfb4e07474e58e60"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "5bcd134fee4dd1475da17714aac19c0aa0142e2f"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "5bcd134fee4dd1475da17714aac19c0aa0142e2f"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
+			"Rev": "5bcd134fee4dd1475da17714aac19c0aa0142e2f"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "62bee037599929a6e9146f29d10dd5208c43507d"
+		},
+		{
+			"ImportPath": "stathat.com/c/jconfig",
+			"Rev": "343ed1f8172332f36c2d6317d6785f3a3864a15c"
+		}
+	]
+}
