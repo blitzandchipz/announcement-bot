@@ -1,14 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	// "github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
-	"net/http"
 	"stathat.com/c/jconfig"
-	"time"
 )
 
 // Hostname for meetup.com's api
@@ -29,6 +26,8 @@ var (
 	GroupURL string
 	// Config for the bots settings
 	Config *jconfig.Config
+	// DB for dynamic settings per guild
+	DB *bolt.DB
 )
 
 // Event is a single event from meetup.com
@@ -63,17 +62,6 @@ type Venue struct {
 	State                string  `json:"state"`
 }
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-func errMsg(err error) string {
-	msg := err.Error()
-	return msg
-}
-
 func init() {
 	flag.StringVar(&Email, "e", "", "Account Email")
 	flag.StringVar(&Password, "p", "", "Account Password")
@@ -104,7 +92,13 @@ func init() {
 
 func main() {
 	// Open database
-	// db, err := bolt.Open("settings.db", 0600, nil)
+	var err error
+	DB, err = bolt.Open("settings.db", 0600, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer DB.Close()
+
 	// Create a new Discord session using the provided login information.
 	dg, err := discordgo.New(Email, Password, Token)
 	if err != nil {
@@ -121,6 +115,21 @@ func main() {
 	// Store the account ID for later use.
 	BotID = u.ID
 
+	guilds, err := dg.UserGuilds()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	DB.Update(func(tx *bolt.Tx) error {
+		for _, guild := range guilds {
+			_, err := tx.CreateBucket([]byte(guild.ID))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+		}
+		return nil
+	})
+
 	// Register messageCreate as a callback for the messageCreate events.
 	dg.AddHandler(messageCreate)
 
@@ -131,28 +140,4 @@ func main() {
 	// Simple way to keep program running until CTRL-C is pressed.
 	<-make(chan struct{})
 	return
-}
-
-// Helper function to unmarshle json data into structs
-func getJSON(url string, target interface{}) error {
-	r, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
-}
-
-// Helper function to truncates a string and adds ellipsis
-func truncate(str string) string {
-	if len(str) > 150 {
-		return string(str[:47] + "...")
-	}
-	return str
-}
-
-// Helper function to convert ms since epoch to ANSIC time format
-func msToTime(ms int64) (string, error) {
-	return time.Unix(0, ms*int64(time.Millisecond)).Format(time.ANSIC), nil
 }

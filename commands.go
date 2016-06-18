@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
 	"io/ioutil"
 	"net/http"
@@ -39,7 +40,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Store the group in global
 		// TODO rework this so it works per discord guild
 		GroupURL = tempURL
+		channel, err := s.Channel(m.ChannelID)
+		if err != nil {
+			errMsg := errMsg(err)
+			fmt.Println(errMsg)
+			return
+		}
+		DB.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(channel.GuildID))
+			err := b.Put([]byte("urlname"), []byte(GroupURL))
+			return err
+		})
 		s.ChannelMessageSend(m.ChannelID, "Group url now set to: "+GroupURL)
+
+		printGuild(channel.GuildID)
 	}
 
 	// Gets a list of events for the currently set group
