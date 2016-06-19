@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
@@ -51,7 +52,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return err
 		})
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Group url now set to: %v\n", urlName))
-
+		getNext(channel)
 		printGuild(channel.GuildID)
 	}
 
@@ -109,14 +110,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := Hostname + urlName + "/events?key=" + APIKey + "&page=1"
-		var events []Event
-		err = getJSON(url, &events)
-		if err != nil {
-			errMsg := errMsg(err)
-			s.ChannelMessageSend(m.ChannelID, errMsg)
-			return
-		}
+		events := getNext(channel)
 		msg := "No future, public events found"
 
 		// Check if theres any events
@@ -148,4 +142,30 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		s.ChannelMessageSend(m.ChannelID, msg)
 	}
+}
+
+func getNext(channel *discordgo.Channel) []Event {
+	var events []Event
+
+	urlName, err := getURLName(channel.GuildID)
+	if err != nil {
+		fmt.Println(fmt.Errorf("getURLName failed: %v", err))
+	}
+
+	url := Hostname + urlName + "/events?key=" + APIKey + "&page=1"
+	err = getJSON(url, &events)
+	if err != nil {
+		fmt.Println(fmt.Errorf("getJSON failed: %v", err))
+	}
+
+	if len(events) > 0 {
+		event, _ := json.Marshal(events[0])
+		DB.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(channel.GuildID))
+			err := b.Put([]byte("nextevent"), event)
+			return err
+		})
+	}
+
+	return events
 }
