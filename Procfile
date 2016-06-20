@@ -1,1 +1,1 @@
-web: meetup-bot
+worker: meetup-bot
