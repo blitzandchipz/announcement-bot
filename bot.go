@@ -68,7 +68,10 @@ func init() {
 	flag.StringVar(&APIKey, "a", "", "Meetup API Key")
 	flag.Parse()
 
-	Config = jconfig.LoadConfig("config.json")
+	_, err := os.Stat("config.json")
+	if err == nil {
+		Config = jconfig.LoadConfig("config.json")
+	}
 
 	if Config != nil {
 		if Email == "" && Config.GetString("Email") != "" {
@@ -105,7 +108,7 @@ func init() {
 	}
 
 	// Open database
-	var err error
+	err = nil
 	DB, err = bolt.Open("settings.db", 0600, nil)
 	if err != nil {
 		fmt.Println(err.Error())
