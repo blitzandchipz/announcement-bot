@@ -21,6 +21,7 @@ _testmain.go
 
 *.exe
 *.test
+*.bak
 *.prof
 *.db
 *.db.lock
