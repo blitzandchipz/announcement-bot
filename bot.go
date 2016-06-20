@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
+	"os"
 	"stathat.com/c/jconfig"
 )
 
@@ -84,6 +85,22 @@ func init() {
 
 		if APIKey == "" && Config.GetString("APIKey") != "" {
 			APIKey = Config.GetString("APIKey")
+		}
+	} else {
+		if Email == "" && os.Getenv("Email") != "" {
+			Email = os.Getenv("Email")
+		}
+
+		if Password == "" && os.Getenv("Password") != "" {
+			Password = os.Getenv("Password")
+		}
+
+		if Token == "" && os.Getenv("Token") != "" {
+			Token = os.Getenv("Token")
+		}
+
+		if APIKey == "" && os.Getenv("APIKey") != "" {
+			APIKey = os.Getenv("APIKey")
 		}
 	}
 
