@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
+	"log"
 	"os"
+	"os/signal"
 	"stathat.com/c/jconfig"
 )
 
-// Hostname for meetup.com's api
-const Hostname = "https://api.meetup.com/"
+// hostname for meetup.com's api
+const hostname = "https://api.meetup.com/"
 
 var (
 	// Email for discord user account
@@ -106,29 +108,27 @@ func init() {
 			APIKey = os.Getenv("APIKey")
 		}
 	}
-
-	// Open database
-	err = nil
-	DB, err = bolt.Open("settings.db", 0600, nil)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
 }
 
 func main() {
+	// Open database
+	DB, err := bolt.Open("settings.db", 0600, nil)
+	if err != nil {
+		log.Printf("Error opening bolt db: %s\n", err.Error())
+	}
 	defer DB.Close()
 
 	// Create a new Discord session using the provided login information.
 	dg, err := discordgo.New(Email, Password, Token)
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
+		log.Printf("Error creating Discord session: %s\n", err.Error())
 		return
 	}
 
 	// Get the account information.
 	u, err := dg.User("@me")
 	if err != nil {
-		fmt.Println("error obtaining account details,", err)
+		log.Printf("Error obtaining account details: %s\n", err.Error())
 	}
 
 	// Store the account ID for later use.
@@ -137,7 +137,7 @@ func main() {
 	// Get all the guilds the bot is in
 	guilds, err := dg.UserGuilds()
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Error getting guilds: %s\n", err.Error())
 	}
 
 	// Make sure a bucket exists for each guild
@@ -158,7 +158,12 @@ func main() {
 	dg.Open()
 
 	fmt.Println("Meetup Bot is now running.  Press CTRL-C to exit.")
-	// Simple way to keep program running until CTRL-C is pressed.
-	<-make(chan struct{})
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Block until a signal is received.
+	s := <-c
+	fmt.Println("Got signal:", s)
 	return
 }

@@ -15,11 +15,6 @@ func check(e error) {
 	}
 }
 
-func errMsg(err error) string {
-	msg := err.Error()
-	return msg
-}
-
 func getChannel(s *discordgo.Session, channelID string) (*discordgo.Channel, error) {
 	return s.Channel(channelID)
 }

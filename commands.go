@@ -6,6 +6,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -23,11 +24,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// the server
 	if strings.HasPrefix(m.Content, "!setgroup") {
 		urlName := strings.TrimSpace(strings.TrimPrefix(m.Content, "!setgroup"))
-		url := Hostname + "/" + urlName + "?key=" + APIKey
+		url := hostname + "/" + urlName + "?key=" + APIKey
 		resp, err := http.Get(url)
 		if err != nil {
-			errMsg := errMsg(err)
-			s.ChannelMessageSend(m.ChannelID, errMsg)
+			log.Printf("Error getting group: %s\n", err.Error())
+			s.ChannelMessageSend(m.ChannelID, err.Error())
 			return
 		}
 		defer resp.Body.Close()
@@ -41,8 +42,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		channel, err := getChannel(s, m.ChannelID)
 		if err != nil {
-			errMsg := errMsg(err)
-			fmt.Println(errMsg)
+			log.Printf("Error getting channel: %s\n", err.Error())
 			return
 		}
 
@@ -61,15 +61,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "!getevents") {
 		channel, err := getChannel(s, m.ChannelID)
 		if err != nil {
-			errMsg := errMsg(err)
-			fmt.Println(errMsg)
+			log.Printf("Error getting channel: %s\n", err.Error())
 			return
 		}
 
 		urlName, err := getURLName(channel.GuildID)
 		if err != nil {
-			errMsg := errMsg(err)
-			fmt.Println(errMsg)
+			log.Printf("Error getting urlname from GuildID: %s\n", err.Error())
 			return
 		}
 
@@ -77,11 +75,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := Hostname + urlName + "/events?key=" + APIKey + "&page=25"
+		url := hostname + urlName + "/events?key=" + APIKey + "&page=25"
 		r, err := http.Get(url)
 		if err != nil {
-			errMsg := errMsg(err)
-			s.ChannelMessageSend(m.ChannelID, errMsg)
+			log.Printf("Error getting events: %s\n", err.Error())
+			s.ChannelMessageSend(m.ChannelID, err.Error())
 			return
 		}
 		defer r.Body.Close()
@@ -94,15 +92,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "!nextevent") {
 		channel, err := getChannel(s, m.ChannelID)
 		if err != nil {
-			errMsg := errMsg(err)
-			fmt.Println(errMsg)
+			log.Printf("Error getting channel: %s\n", err.Error())
 			return
 		}
 
 		urlName, err := getURLName(channel.GuildID)
 		if err != nil {
-			errMsg := errMsg(err)
-			fmt.Println(errMsg)
+			log.Printf("Error getting urlname: %s\n", err.Error())
 			return
 		}
 
@@ -149,13 +145,13 @@ func getNext(channel *discordgo.Channel) []Event {
 
 	urlName, err := getURLName(channel.GuildID)
 	if err != nil {
-		fmt.Println(fmt.Errorf("getURLName failed: %v", err))
+		log.Printf("Error getting urlName: %s\n", err.Error())
 	}
 
-	url := Hostname + urlName + "/events?key=" + APIKey + "&page=1"
+	url := hostname + urlName + "/events?key=" + APIKey + "&page=1"
 	err = getJSON(url, &events)
 	if err != nil {
-		fmt.Println(fmt.Errorf("getJSON failed: %v", err))
+		log.Printf("Error getJSON: %s\n", err.Error())
 	}
 
 	if len(events) > 0 {
