@@ -1,14 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/bwmarrin/discordgo"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
-	"stathat.com/c/jconfig"
+	"path/filepath"
 )
 
 // hostname for meetup.com's api
@@ -25,11 +27,19 @@ var (
 	BotID string
 	// APIKey for meetup.com
 	APIKey string
-	// Config for the bots settings
-	Config *jconfig.Config
-	// DB for dynamic settings per guild
-	DB *bolt.DB
+	// config for the bots settings
+	config *Config
+	// db for dynamic settings per guild
+	db *bolt.DB
 )
+
+// Config stores the settings for the bot
+type Config struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+	APIKey   string `json:"apikey"`
+}
 
 // Event is a single event from meetup.com
 type Event struct {
@@ -70,26 +80,33 @@ func init() {
 	flag.StringVar(&APIKey, "a", "", "Meetup API Key")
 	flag.Parse()
 
-	_, err := os.Stat("config.json")
+	path, err := filepath.Abs("config.json")
 	if err == nil {
-		Config = jconfig.LoadConfig("config.json")
+		configFile := []byte("")
+		configFile, err = ioutil.ReadFile(path)
+		if err == nil {
+			err = json.Unmarshal(configFile, config)
+		}
+	}
+	if err != nil {
+		log.Printf("Error opening config file: %s\n", err.Error())
 	}
 
-	if Config != nil {
-		if Email == "" && Config.GetString("Email") != "" {
-			Email = Config.GetString("Email")
+	if config != nil {
+		if Email == "" && config.Email != "" {
+			Email = config.Email
 		}
 
-		if Password == "" && Config.GetString("Password") != "" {
-			Password = Config.GetString("Password")
+		if Password == "" && config.Password != "" {
+			Password = config.Password
 		}
 
-		if Token == "" && Config.GetString("Token") != "" {
-			Token = Config.GetString("Token")
+		if Token == "" && config.Token != "" {
+			Token = config.Token
 		}
 
-		if APIKey == "" && Config.GetString("APIKey") != "" {
-			APIKey = Config.GetString("APIKey")
+		if APIKey == "" && config.APIKey != "" {
+			APIKey = config.APIKey
 		}
 	} else {
 		if Email == "" && os.Getenv("Email") != "" {
@@ -112,11 +129,11 @@ func init() {
 
 func main() {
 	// Open database
-	DB, err := bolt.Open("settings.db", 0600, nil)
+	db, err := bolt.Open("settings.db", 0600, nil)
 	if err != nil {
 		log.Printf("Error opening bolt db: %s\n", err.Error())
 	}
-	defer DB.Close()
+	defer db.Close()
 
 	// Create a new Discord session using the provided login information.
 	dg, err := discordgo.New(Email, Password, Token)
@@ -141,7 +158,7 @@ func main() {
 	}
 
 	// Make sure a bucket exists for each guild
-	DB.Update(func(tx *bolt.Tx) error {
+	db.Update(func(tx *bolt.Tx) error {
 		for _, guild := range guilds {
 			_, err := tx.CreateBucket([]byte(guild.ID))
 			if err != nil {

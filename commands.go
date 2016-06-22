@@ -46,7 +46,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 
-		DB.Update(func(tx *bolt.Tx) error {
+		db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(channel.GuildID))
 			err := b.Put([]byte("urlname"), []byte(urlName))
 			return err
@@ -156,7 +156,7 @@ func getNext(channel *discordgo.Channel) []Event {
 
 	if len(events) > 0 {
 		event, _ := json.Marshal(events[0])
-		DB.Update(func(tx *bolt.Tx) error {
+		db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(channel.GuildID))
 			err := b.Put([]byte("nextevent"), event)
 			return err

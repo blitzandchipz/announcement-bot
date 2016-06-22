@@ -22,7 +22,7 @@ func getChannel(s *discordgo.Session, channelID string) (*discordgo.Channel, err
 func getURLName(guildID string) (string, error) {
 	var v []byte
 	var err error
-	err = DB.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(guildID))
 		v = b.Get([]byte("urlname"))
 		return nil
@@ -31,7 +31,7 @@ func getURLName(guildID string) (string, error) {
 }
 
 func printGuild(guildID string) {
-	DB.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		// Assume bucket exists and has keys
 		b := tx.Bucket([]byte(guildID))
 
