@@ -35,10 +35,10 @@ var (
 
 // Config stores the settings for the bot
 type Config struct {
+	APIKey   string `json:"apikey"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
-	APIKey   string `json:"apikey"`
 }
 
 // Event is a single event from meetup.com
@@ -82,54 +82,66 @@ func init() {
 
 	path, err := filepath.Abs("config.json")
 	if err == nil {
-		configFile := []byte("")
+		var configFile []byte
 		configFile, err = ioutil.ReadFile(path)
 		if err == nil {
-			err = json.Unmarshal(configFile, config)
+			err = json.Unmarshal(configFile, &config)
+		}
+		if err != nil {
+			log.Printf("Error opening config file: %s\n", err.Error())
 		}
 	}
-	if err != nil {
-		log.Printf("Error opening config file: %s\n", err.Error())
-	}
 
-	if config != nil {
-		if Email == "" && config.Email != "" {
-			Email = config.Email
-		}
-
-		if Password == "" && config.Password != "" {
-			Password = config.Password
-		}
-
-		if Token == "" && config.Token != "" {
-			Token = config.Token
-		}
-
-		if APIKey == "" && config.APIKey != "" {
-			APIKey = config.APIKey
-		}
-	} else {
-		if Email == "" && os.Getenv("Email") != "" {
-			Email = os.Getenv("Email")
-		}
-
-		if Password == "" && os.Getenv("Password") != "" {
-			Password = os.Getenv("Password")
-		}
-
-		if Token == "" && os.Getenv("Token") != "" {
-			Token = os.Getenv("Token")
-		}
-
-		if APIKey == "" && os.Getenv("APIKey") != "" {
+	if APIKey == "" {
+		if os.Getenv("APIKey") == "" {
+			if config != nil {
+				APIKey = config.APIKey
+			}
+		} else {
 			APIKey = os.Getenv("APIKey")
 		}
+	}
+
+	if Email == "" {
+		if os.Getenv("Email") == "" {
+			if config != nil {
+				Email = config.Email
+			}
+		} else {
+			Email = os.Getenv("Email")
+		}
+	}
+
+	if Password == "" {
+		if os.Getenv("Password") == "" {
+			if config != nil {
+				Password = config.Password
+			}
+		} else {
+			Password = os.Getenv("Password")
+		}
+	}
+
+	if Token == "" {
+		if os.Getenv("Token") == "" {
+			if config != nil {
+				Token = config.Token
+			}
+		} else {
+			Token = os.Getenv("Token")
+		}
+	}
+
+	// Panic if missing any of the required values
+	if APIKey == "" || (Token == "" && (Email == "" || Password == "")) {
+		panic(fmt.Sprintf("\nMissing an essential config:\nAPIKey: %s\nToken: %s\n or\nEmail:%s and Password:%s\n", APIKey, Token, Email, Password))
 	}
 }
 
 func main() {
 	// Open database
-	db, err := bolt.Open("settings.db", 0600, nil)
+	var err error
+	db, err = bolt.Open("settings.db", 0600, nil)
 	if err != nil {
 		log.Printf("Error opening bolt db: %s\n", err.Error())
 	}

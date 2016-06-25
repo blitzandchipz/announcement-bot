@@ -1,6 +1,6 @@
 {
-  "APIKey": "123456789abcd",
-  "Email": "",
-  "Passowrd": "",
-  "Token": "12345abcd.12345.123456789abcdef"
+  "apikey": "123456789abcd",
+  "email": "",
+  "password": "",
+  "token": "12345abcd.12345.123456789abcdef"
 }
