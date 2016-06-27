@@ -24,7 +24,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// the server
 	if strings.HasPrefix(m.Content, "!setgroup") {
 		urlName := strings.TrimSpace(strings.TrimPrefix(m.Content, "!setgroup"))
-		url := hostname + "/" + urlName + "?key=" + APIKey
+		url := hostname + "/" + urlName + "?key=" + config.APIKey
 		resp, err := http.Get(url)
 		if err != nil {
 			log.Printf("Error getting group: %s\n", err.Error())
@@ -75,7 +75,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Run !setgroup first")
 			return
 		}
-		url := hostname + urlName + "/events?key=" + APIKey + "&page=25"
+		url := hostname + urlName + "/events?key=" + config.APIKey + "&page=25"
 		r, err := http.Get(url)
 		if err != nil {
 			log.Printf("Error getting events: %s\n", err.Error())
@@ -148,7 +148,7 @@ func getNext(channel *discordgo.Channel) []Event {
 		log.Printf("Error getting urlName: %s\n", err.Error())
 	}
 
-	url := hostname + urlName + "/events?key=" + APIKey + "&page=1"
+	url := hostname + urlName + "/events?key=" + config.APIKey + "&page=1"
 	err = getJSON(url, &events)
 	if err != nil {
 		log.Printf("Error getJSON: %s\n", err.Error())

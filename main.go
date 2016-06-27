@@ -10,23 +10,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 )
 
 // hostname for meetup.com's api
 const hostname = "https://api.meetup.com/"
 
 var (
-	// Email for discord user account
-	Email string
-	// Password for discord user account
-	Password string
-	// Token for discord bot account
-	Token string
 	// BotID of the user account
 	BotID string
-	// APIKey for meetup.com
-	APIKey string
 	// config for the bots settings
 	config *Config
 	// db for dynamic settings per guild
@@ -39,6 +30,19 @@ type Config struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
+}
+
+// Validate the config settings to ensure essential parameters are set
+func (cfg Config) Validate() error {
+	if config.APIKey == "" {
+		return fmt.Errorf("Missing Meetup APIKey")
+	}
+	if config.Token == "" {
+		if config.Email == "" || config.Password == "" {
+			return fmt.Errorf("Missing Discord Token or Email and Password")
+		}
+	}
+	return nil
 }
 
 // Event is a single event from meetup.com
@@ -74,67 +78,42 @@ type Venue struct {
 }
 
 func init() {
-	flag.StringVar(&Email, "e", "", "Account Email")
-	flag.StringVar(&Password, "p", "", "Account Password")
-	flag.StringVar(&Token, "t", "", "Account Token")
-	flag.StringVar(&APIKey, "a", "", "Meetup API Key")
+	config = &Config{}
+
+	path := "./config.json"
+	configFile, err := ioutil.ReadFile(path)
+	if err == nil {
+		err = json.Unmarshal(configFile, &config)
+	}
+	if err != nil {
+		log.Fatalf("Error opening config file: %s\n", err.Error())
+	}
+
+	flag.StringVar(&config.APIKey, "a", config.APIKey, "Meetup API Key")
+	flag.StringVar(&config.Email, "e", config.Email, "Account Email")
+	flag.StringVar(&config.Password, "p", config.Password, "Account Password")
+	flag.StringVar(&config.Token, "t", config.Token, "Account Token")
 	flag.Parse()
 
-	path, err := filepath.Abs("config.json")
-	if err == nil {
-		var configFile []byte
-		configFile, err = ioutil.ReadFile(path)
-		if err == nil {
-			err = json.Unmarshal(configFile, &config)
-		}
-		if err != nil {
-			log.Printf("Error opening config file: %s\n", err.Error())
-		}
+	if APIKey := os.Getenv("APIKey"); APIKey != "" {
+		config.APIKey = APIKey
 	}
 
-	if APIKey == "" {
-		if os.Getenv("APIKey") == "" {
-			if config != nil {
-				APIKey = config.APIKey
-			}
-		} else {
-			APIKey = os.Getenv("APIKey")
-		}
+	if Email := os.Getenv("Email"); Email != "" {
+		config.Email = Email
 	}
 
-	if Email == "" {
-		if os.Getenv("Email") == "" {
-			if config != nil {
-				Email = config.Email
-			}
-		} else {
-			Email = os.Getenv("Email")
-		}
+	if Password := os.Getenv("Password"); Password != "" {
+		config.Password = Password
 	}
 
-	if Password == "" {
-		if os.Getenv("Password") == "" {
-			if config != nil {
-				Password = config.Password
-			}
-		} else {
-			Password = os.Getenv("Password")
-		}
+	if Token := os.Getenv("Token"); Token != "" {
+		config.Token = Token
 	}
 
-	if Token == "" {
-		if os.Getenv("Token") == "" {
-			if config != nil {
-				Token = config.Token
-			}
-		} else {
-			Token = os.Getenv("Token")
-		}
-	}
-
-	// Panic if missing any of the required values
-	if APIKey == "" || (Token == "" && (Email == "" || Password == "")) {
-		panic(fmt.Sprintf("\nMissing an essential config:\nAPIKey: %s\nToken: %s\n or\nEmail:%s and Password:%s\n", APIKey, Token, Email, Password))
+	err = config.Validate()
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 }
 
@@ -143,21 +122,21 @@ func main() {
 	var err error
 	db, err = bolt.Open("settings.db", 0600, nil)
 	if err != nil {
-		log.Printf("Error opening bolt db: %s\n", err.Error())
+		log.Fatalf("Error opening bolt db: %s\n", err.Error())
 	}
 	defer db.Close()
 
 	// Create a new Discord session using the provided login information.
-	dg, err := discordgo.New(Email, Password, Token)
+	dg, err := discordgo.New(config.Email, config.Password, config.Token)
 	if err != nil {
-		log.Printf("Error creating Discord session: %s\n", err.Error())
+		log.Fatalf("Error creating Discord session: %s\n", err.Error())
 		return
 	}
 
 	// Get the account information.
 	u, err := dg.User("@me")
 	if err != nil {
-		log.Printf("Error obtaining account details: %s\n", err.Error())
+		log.Fatalf("Error obtaining account details: %s\n", err.Error())
 	}
 
 	// Store the account ID for later use.
@@ -166,7 +145,7 @@ func main() {
 	// Get all the guilds the bot is in
 	guilds, err := dg.UserGuilds()
 	if err != nil {
-		log.Printf("Error getting guilds: %s\n", err.Error())
+		log.Fatalf("Error getting guilds: %s\n", err.Error())
 	}
 
 	// Make sure a bucket exists for each guild
@@ -193,6 +172,8 @@ func main() {
 
 	// Block until a signal is received.
 	s := <-c
+	// Close the websocket
+	dg.Close()
 	fmt.Println("Got signal:", s)
 	return
 }
