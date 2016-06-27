@@ -81,12 +81,14 @@ func init() {
 	config = &Config{}
 
 	path := "./config.json"
-	configFile, err := ioutil.ReadFile(path)
-	if err == nil {
-		err = json.Unmarshal(configFile, &config)
-	}
-	if err != nil {
-		log.Fatalf("Error opening config file: %s\n", err.Error())
+	if _, err := os.Stat(path); err == nil {
+		configFile, err := ioutil.ReadFile(path)
+		if err == nil {
+			err = json.Unmarshal(configFile, &config)
+		}
+		if err != nil {
+			log.Fatalf("Error opening config file: %s\n", err.Error())
+		}
 	}
 
 	flag.StringVar(&config.APIKey, "a", config.APIKey, "Meetup API Key")
@@ -111,7 +113,7 @@ func init() {
 		config.Token = Token
 	}
 
-	err = config.Validate()
+	err := config.Validate()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
